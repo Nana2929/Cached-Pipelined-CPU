@@ -121,13 +121,13 @@ initial begin
 
     // Load instructions into instruction memory
     // Make sure you change back to "instruction.txt" before submission
-    $readmemb("./testdata/instruction_1.txt", CPU.Instruction_Memory.memory);
+    $readmemb("./testdata/instruction_3.txt", CPU.Instruction_Memory.memory);
 
     // Open output files
     // Make sure you change back to "output.txt" before submission
-    outfile = $fopen("./testdata/output1.txt") | 1;
+    outfile = $fopen("./testdata/output3.txt") | 1;
     // Make sure you change back to "cache.txt" before submission
-    outfile2 = $fopen("./testdata/cache1.txt") | 1;
+    outfile2 = $fopen("./testdata/cache3.txt") | 1;
 
 
     // initialize data memory    (16KB)
@@ -138,6 +138,11 @@ initial begin
     Data_Memory.memory[1] = 256'h8888_9999_AAAA_BBBB_CCCC_DDDD_EEEE_FFFF_7777_6666_5555_4444_3333_2222_1111_0000;
     Data_Memory.memory[2] = 256'hECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA_ECFA;
     Data_Memory.memory[3] = 256'h0123_4567_89AB_CDEF_FEDC_BA98_7654_3210_0123_4567_89AB_CDEF_FEDC_BA98_7654_3210;
+    Data_Memory.memory[4]= 256'h0000_0110_0220_0330_0440_0550_0660_0770_0880_0990_0aa0_0bb0_0cc0_0dd0_0ee0_0ff0;
+
+    Data_Memory.memory[16]= 256'h0123_4567_89ab_cdef_fedc_ba98_7654_3210_0123_4567_89ab_cdef_fedc_ba98_7654_3210;
+    Data_Memory.memory[17]= 256'h0000_0110_0220_0330_0440_0550_0660_0770_0880_0990_0aa0_0bb0_0cc0_0dd0_0ee0_0ff0;
+
     Data_Memory.memory[32] = 256'h1001_2002_3003_4004_5005_6006_7007_8008_9009_A00A_B00B_C00C_D00D_E00E_F00F;
     // [D-MemoryInitialization] DO NOT REMOVE THIS FLAG !!!
 
@@ -149,11 +154,15 @@ always@(posedge Clk) begin
         for (j=0; j<2; j=j+1) begin
             for (i=0; i<16; i=i+1) begin
                 tag = CPU.dcache.dcache_sram.tag[i][j];
-                index = i;
-                address = {tag[22:0], index};
-                Data_Memory.memory[address] = CPU.dcache.dcache_sram.data[i][j];
-            end
+                if (tag[24])begin
+                    index = i;
+                    address = {tag[22:0], index};
+                    // $fdisplay(outfile, "Address: %d", address);
+                    Data_Memory.memory[address] = CPU.dcache.dcache_sram.data[i][j];
+                    // $fdisplay(outfile, "Cache line: %h, %h,  %h",i, j , CPU.dcache.dcache_sram.data[i][j]);
+                end
         end
+    end
     end
     if(counter > num_cycles) begin    // stop after num_cycles cycles
         $finish;
@@ -202,19 +211,18 @@ always@(posedge Clk) begin
             if(CPU.dcache.cpu_MemWrite_i)
                 $fdisplay(outfile2, "Cycle: %d, Write Miss, Address: %h, Write Data: %h", counter, CPU.dcache.cpu_addr_i, CPU.dcache.cpu_data_i);
             else if(CPU.dcache.cpu_MemRead_i)
-                $fdisplay(outfile2, "CPU request addr tag: %h", CPU.dcache.cpu_tag);
-                $fdisplay(outfile2, "Cycle: %d, Read Miss , Address: %h, Read Data : %h", counter, CPU.dcache.cpu_addr_i, CPU.dcache.cpu_data_o);
                 // !!! REMOVE!!!!
+                $fdisplay(outfile2, "Cycle: %d, Read Miss , Address: %h, Read Data : %h", counter, CPU.dcache.cpu_addr_i, CPU.dcache.cpu_data_o);
+
         end
         flag = 1'b1;
     end
     else if(!CPU.dcache.cpu_stall_o) begin
         if(!flag) begin
-
             if(CPU.dcache.cpu_MemWrite_i)
                 $fdisplay(outfile2, "Cycle: %d, Write Hit , Address: %h, Write Data: %h", counter, CPU.dcache.cpu_addr_i, CPU.dcache.cpu_data_i);
             else if(CPU.dcache.cpu_MemRead_i)
-                $fdisplay(outfile2, "CPU request addr index: %h",CPU.dcache.cpu_index);
+                // $fdisplay(outfile2, "CPU request addr index: %h",CPU.dcache.cpu_index);
                 $fdisplay(outfile2, "Cycle: %d, Read Hit  , Address: %h, Read Data : %h", counter, CPU.dcache.cpu_addr_i, CPU.dcache.cpu_data_o);
         end
         flag = 1'b0;

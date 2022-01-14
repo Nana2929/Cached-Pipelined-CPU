@@ -17,7 +17,7 @@ input              clk_i;
 input              rst_i;
 input    [3:0]     addr_i;      // dcache sram index
 input    [24:0]    tag_i;       // cpu tag
-input    [255:0]   data_i;      // data from memory
+input    [255:0]   data_i;      // data from memory or data modified by cpu
 input              enable_i;
 input              write_i;
 
@@ -38,19 +38,32 @@ integer                        i, j;
 reg                           valid;
 reg   to_evict, hasWritten, hasReadHit;
 reg [24:0]                 sram_tag;
+
+wire hit, hit_w0, hit_w1;
+
+assign vw0 = tag[addr_i][0][24];
+assign vw1 = tag[addr_i][1][24];
+assign validw = ~(vw0 & vw1);
+
+assign hit_w0 = vw0 & (tag_i[22:0] == tag[addr_i][0][22:0]);
+assign hit_w1 = vw1 & (tag_i[22:0] == tag[addr_i][1][22:0]);
+assign hit = hit_w0 | hit_w1;
+
+// reference: https://github.com/prasadp4009/2-way-Set-Associative-Cache-Controller/blob/master/rtl/cache_2wsa.v#L426
+
+
+always@(*)begin
+    hit_o = hit;
+end
 // Write Data (write only at posedge)
 // 1. Write hit
 // 2. Read miss: Read from memory
 // cache can only be written under 2 circumstances
 // (1) write hit, directly modify the correct memory block
 // (2) write miss, after enable
-initial begin
-    hit_o = 0;
-    hasWritten = 0;
-    hasReadHit = 0;
-end
+
+// 1.14 version
 always@(posedge clk_i or posedge rst_i) begin
-    hasWritten = 0;
     if (rst_i) begin
         for (i=0;i<16;i=i+1) begin
             ref[i] <= 1'b0;
@@ -63,70 +76,85 @@ always@(posedge clk_i or posedge rst_i) begin
     if (enable_i && write_i) begin
         // TODO: Handle your write of 2-way associative cache + LRU here
         // originally a write hit
-        for (j=0; j<2;j+=1) begin
-            valid <= tag[addr_i][j][24];
-            if ((tag[addr_i][j][22:0] == tag_i[22:0]) && valid) begin
-                hasWritten <= 1'b1;
-                hit_o <= 1'b1;
-                tag_o <= tag[addr_i][j]; // {v,d,23-tagbits}
-                data_o <= data[addr_i][j]; // a cpu modified w_hit_data
-                // write-hit
-                tag[addr_i][j] <= tag_i;
-                data[addr_i][j] <= data_i; //w-hit data
-                // LRU
-                if (j == 0)ref[addr_i] = 1'b1;
-                else ref[addr_i] = 1'b0;
+        case (hit)
+            1'b0: begin // Write Miss
+                // Replace
+                if (validw) begin
+                    if (~vw0) begin
+                        data[addr_i][0] <= data_i;
+                        tag[addr_i][0] <= tag_i;
+                        data_o <= data[addr_i][0];
+                        tag_o <= tag[addr_i][0];
+                        ref[addr_i] <= 1; // block to be evicted next time is 1
+                    end
+                    else begin // vw1
+                        data[addr_i][1] <= data_i;
+                        tag[addr_i][1] <= tag_i;
+                        data_o <= data[addr_i][1];
+                        tag_o <= tag[addr_i][1];
+                        ref[addr_i] <= 0; // block to be evicted next time is 0
+                    end
+                end
+                else begin
+                    // to be evicted is 0
+                    if (ref[addr_i] == 0) begin
+                        // 把evicted cache line 送至dcache_controller
+                        data_o <= data[addr_i][0];
+                        tag_o <= tag[addr_i][0];
+                        // 寫入把其他人擠掉的cache line (requested cache line)
+                        tag[addr_i][0] <= tag_i;
+                        data[addr_i][0] <= data_i;
+                        ref[addr_i] <= 1;
+                    end
+                    else begin
+                        data_o <= data[addr_i][1];
+                        tag_o <= tag[addr_i][1];
+                        // 寫入把其他人擠掉的cache line (requested cache line)
+                        tag[addr_i][1] <= tag_i;
+                        data[addr_i][1] <= data_i;
+                        ref[addr_i] <= 0;
+                    end
+                    end
+                end
+            1'b1: begin// Write hit
+                if (hit_w0) begin
+                    data[addr_i][0] <= data_i;
+                    tag[addr_i][0] <= tag_i;
+                    data_o <= data[addr_i][0];
+                    tag_o <= tag[addr_i][0];
+                    ref[addr_i] <= 1; // block to be evicted next time is 1
+                end
+                else begin // hit_w1
+                    data[addr_i][1] <= data_i;
+                    tag[addr_i][1] <= tag_i;
+                    data_o <= data[addr_i][1];
+                    tag_o <= tag[addr_i][1];
+                    ref[addr_i] <= 0; // block to be evicted next time is 0
                 end
             end
-
-        //if no write hit and no invalid slots, evict a block
-        if (~hasWritten && tag[addr_i][0][24] && tag[addr_i][1][24])begin
-            // both valid
-            to_evict <= ref[addr_i];
-            // send out the evicted cache line
-            tag_o <= tag[addr_i][to_evict];
-            data_o <= data[addr_i][to_evict];
-            // write in the new data
-            tag[addr_i][j] <= tag_i;
-            data[addr_i][j] <= data_i;
-            // hit_o <= 1'b1; // data is ready, stop cpu_stall_o signal
-            hasWritten <= 1'b1;
-            if (to_evict == 0)ref[addr_i] = 1'b1;
-                else ref[addr_i] = 1'b0;
-        end
-        // if 1 or more invalid slots are available, put it in
-        for (j=0; j<2;j+=1) begin
-            if (~hasWritten) begin
-                valid <= tag[addr_i][j][24];
-                if (~valid) begin
-                    // hit_o <= 1'b1;
-                    tag_o <= tag[addr_i][j]; // {v,d,23-tagbits}
-                    data_o <= data[addr_i][j];
-                    data[addr_i][j] <= data_i;
-                    tag[addr_i][j] <= tag_i;
-                    if (j == 0) ref[addr_i] = 1'b1;
-                    else ref[addr_i] = 1'b0;
-                    hasWritten <= 1'b1;
-                end
-            end
-        end
+        endcase
     end
-end
-// Read data is OUTSIDE?
-// TODO: tag_o=? data_o=? hit_o=?
-always@(*)begin
-    hit_o = 0;
-    for (j=0; j<2;j+=1) begin
-        valid = tag[addr_i][j][24];
-        if (tag[addr_i][j][22:0] == tag_i[22:0] && valid) begin
-            tag_o = tag[addr_i][j];
-            data_o = data[addr_i][j];
-            hit_o = 1;
-            // if it's a hit, renew reference bit for LRU
-            // if LRU tag[i][0], set to 1, if LRU tag[i][1] set to 0.
-            if (j == 0) ref[addr_i] = 1'b1;
-            else ref[addr_i] = 1'b0;
+    // Read data is OUTSIDE?
+    // TODO: tag_o=? data_o=? hit_o=?
+    else if (enable_i) begin
+        case(hit)
+            1'b1: begin// Readhit
+                if (hit_w0) begin
+                    tag_o <= tag[addr_i][0];
+                    data_o <= data[addr_i][0];
+                    ref[addr_i] <= 1;
+                end
+                else begin
+                    tag_o <= tag[addr_i][1];
+                    data_o <= data[addr_i][1];
+                    ref[addr_i] <= 0;
+                end
             end
-
+            1'b0: begin
+                data_o <= data_i;
+                tag_o <= tag_i;
+            end
+        endcase
+        end
 end
 endmodule

@@ -130,7 +130,7 @@ assign    cache_dirty  = write_hit;
 
 // TODO: add your code here!  (r_hit_data=...?)
 // reference: https://stackoverflow.com/questions/33864574/non-constant-indexing-for-a-logic-statement-in-systemverilog
-assign r_hit_data = sram_cache_data;
+assign r_hit_data = (hit)? sram_cache_data : mem_data_i;
 // read data :  256-bit to 32-bit
 always@(cpu_offset or r_hit_data) begin
     // TODO: add your code here! (cpu_data=...?)
@@ -169,7 +169,7 @@ always@(posedge clk_i or posedge rst_i) begin
             STATE_MISS: begin
                 if(sram_dirty) begin          // write back if dirty
                     // TODO: add your code here!
-                    mem_enable  <= 1'b1; // Memory starts accessing data
+                    mem_enable  <= 1'b0;
                     mem_write   <= 1'b1; // sram_dirty=1; the corresponding sram_cache_data is then ready to be written back
                     cache_write <= 1'b0;
                     write_back  <= 1'b1;
@@ -188,7 +188,7 @@ always@(posedge clk_i or posedge rst_i) begin
             STATE_READMISS: begin
                 if(mem_ack_i) begin            // wait for data memory acknowledge
                     // TODO: add your code here!
-                    mem_enable  <= 1'b0; // 10 cycles have passed
+                    mem_enable  <= 1'b1; // 10 cycles have passed
                     mem_write   <= 1'b0;
                     cache_write <= 1'b1;
                     write_back  <= 1'b0;
@@ -202,7 +202,7 @@ always@(posedge clk_i or posedge rst_i) begin
                 // TODO: add your code here!
                 mem_enable  <= 1'b0;
                 mem_write   <= 1'b0;
-                cache_write <= 1'b1;
+                cache_write <= 1'b0;
                 write_back  <= 1'b0;
                 state <= STATE_IDLE;
             end
@@ -211,9 +211,9 @@ always@(posedge clk_i or posedge rst_i) begin
                 if(mem_ack_i) begin            // wait for data memory acknowledge
                     // TODO: add your code here!
                     // writeback結束了
-                    mem_enable  <= 1'b0; //????
+                    mem_enable  <= 1'b1; //????
                     mem_write   <= 1'b0;
-                    cache_write <= 1'b0;
+                    cache_write <= 1'b0; // off, 99% sure
                     write_back  <= 1'b0;
                     state <= STATE_READMISS;
                 end
