@@ -121,13 +121,13 @@ initial begin
 
     // Load instructions into instruction memory
     // Make sure you change back to "instruction.txt" before submission
-    $readmemb("./testdata/instruction_3.txt", CPU.Instruction_Memory.memory);
+    $readmemb("./testdata/instruction_4.txt", CPU.Instruction_Memory.memory);
 
     // Open output files
     // Make sure you change back to "output.txt" before submission
-    outfile = $fopen("./testdata/output3.txt") | 1;
+    outfile = $fopen("./testdata/output4.txt") | 1;
     // Make sure you change back to "cache.txt" before submission
-    outfile2 = $fopen("./testdata/cache3.txt") | 1;
+    outfile2 = $fopen("./testdata/cache4.txt") | 1;
 
 
     // initialize data memory    (16KB)
@@ -154,7 +154,7 @@ always@(posedge Clk) begin
         for (j=0; j<2; j=j+1) begin
             for (i=0; i<16; i=i+1) begin
                 tag = CPU.dcache.dcache_sram.tag[i][j];
-                if (tag[24])begin
+                if (tag[24])begin // see validity
                     index = i;
                     address = {tag[22:0], index};
                     // $fdisplay(outfile, "Address: %d", address);

@@ -9,7 +9,7 @@ module dcache_sram
     write_i,
     tag_o,
     data_o,
-    hit_o
+    hit_o,
 );
 
 // I/O Interface from/to controller
@@ -33,18 +33,14 @@ output reg            hit_o;
 reg      [24:0]    tag [15:0][1:0]; // 16 sets, 2-way
 reg      [255:0]   data[15:0][1:0];
 reg                     ref [15:0];   // if tag[i][0] is older set to 1
-wire                    read_match;
-integer                        i, j;
-reg                           valid;
-reg   to_evict, hasWritten, hasReadHit;
-reg [24:0]                 sram_tag;
+integer                       i, j;
+reg                       to_evict;
 
-wire hit, hit_w0, hit_w1;
-
+wire validw, vw0, vw1;
 assign vw0 = tag[addr_i][0][24];
 assign vw1 = tag[addr_i][1][24];
 assign validw = ~(vw0 & vw1);
-
+wire hit, hit_w0, hit_w1;
 assign hit_w0 = vw0 & (tag_i[22:0] == tag[addr_i][0][22:0]);
 assign hit_w1 = vw1 & (tag_i[22:0] == tag[addr_i][1][22:0]);
 assign hit = hit_w0 | hit_w1;
@@ -52,9 +48,7 @@ assign hit = hit_w0 | hit_w1;
 // reference: https://github.com/prasadp4009/2-way-Set-Associative-Cache-Controller/blob/master/rtl/cache_2wsa.v#L426
 
 
-always@(*)begin
-    hit_o = hit;
-end
+
 // Write Data (write only at posedge)
 // 1. Write hit
 // 2. Read miss: Read from memory
@@ -62,8 +56,15 @@ end
 // (1) write hit, directly modify the correct memory block
 // (2) write miss, after enable
 
+// always@(*)begin
+//     if (~hit) hit_o = hit;
+// end
+
 // 1.14 version
 always@(posedge clk_i or posedge rst_i) begin
+    // 我不確定hit_o = hit要寫在always(*)還是posedge?
+    // sram_ready_o = 1; // ready
+    hit_o = hit;
     if (rst_i) begin
         for (i=0;i<16;i=i+1) begin
             ref[i] <= 1'b0;
@@ -134,25 +135,30 @@ always@(posedge clk_i or posedge rst_i) begin
             end
         endcase
     end
+end
+
+
+always@(*)begin
     // Read data is OUTSIDE?
     // TODO: tag_o=? data_o=? hit_o=?
-    else if (enable_i) begin
+    hit_o = hit;
+    if (enable_i) begin
         case(hit)
             1'b1: begin// Readhit
                 if (hit_w0) begin
-                    tag_o <= tag[addr_i][0];
-                    data_o <= data[addr_i][0];
-                    ref[addr_i] <= 1;
+                    tag_o = tag[addr_i][0];
+                    data_o = data[addr_i][0];
+                    ref[addr_i] = 1;
                 end
                 else begin
-                    tag_o <= tag[addr_i][1];
-                    data_o <= data[addr_i][1];
-                    ref[addr_i] <= 0;
+                    tag_o = tag[addr_i][1];
+                    data_o = data[addr_i][1];
+                    ref[addr_i] = 0;
                 end
             end
             1'b0: begin
-                data_o <= data_i;
-                tag_o <= tag_i;
+                data_o = data_i;
+                tag_o = tag_i;
             end
         endcase
         end

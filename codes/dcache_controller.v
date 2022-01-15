@@ -58,7 +58,7 @@ wire                  cache_sram_write;
 wire    [24:0]        sram_cache_tag;
 wire    [255:0]       sram_cache_data;
 wire                  sram_cache_hit;
-
+wire                  sram_ready;
 
 // cache
 wire                  sram_valid;
@@ -95,7 +95,7 @@ wire                  write_hit;
 wire                  cpu_req;      // if it is a load/store instruction
 reg     [31:0]        cpu_data;     // the data written by CPU (if a store instruction)
                                         // to be stored back to cache (be stored back to Data_Memory in write-back)
-
+// assign hit = sram_ready & match;
 // to CPU interface
 assign    cpu_req     = cpu_MemRead_i | cpu_MemWrite_i;
 
@@ -104,7 +104,8 @@ assign    cpu_index   = cpu_addr_i[8:5];
 assign    cpu_offset  = cpu_addr_i[4:0];
 
 
-assign    cpu_stall_o = ~hit & cpu_req;      // load-store && a miss (no matter w or r)
+// assign    cpu_stall_o = ~hit & cpu_req;      // load-store && a miss (no matter w or r)
+assign    cpu_stall_o = ~hit & cpu_req;
 assign    cpu_data_o  = cpu_data;
 
 // to SRAM interface
@@ -117,8 +118,8 @@ assign    cache_sram_write  = cache_write | write_hit; // cache can only be writ
                                                     // (1) [W/R MISS] cache_write: the previously missed data is readily prepared by memory
                                                     // (2) [W HIT]    write_hit: cpu's write request finds the correspnding memory block in cache
 assign    cache_sram_tag    = {1'b1, cache_dirty, cpu_tag};
-assign    cache_sram_data   = (hit) ? w_hit_data : mem_data_i;
 
+assign    cache_sram_data   = (hit) ? w_hit_data : mem_data_i;
 // to Data_Memory interface
 assign    mem_enable_o = mem_enable;
 assign    mem_addr_o   = (write_back) ? {sram_tag, cpu_index, 5'b0} : {cpu_tag, cpu_index, 5'b0};
@@ -130,7 +131,12 @@ assign    cache_dirty  = write_hit;
 
 // TODO: add your code here!  (r_hit_data=...?)
 // reference: https://stackoverflow.com/questions/33864574/non-constant-indexing-for-a-logic-statement-in-systemverilog
-assign r_hit_data = (hit)? sram_cache_data : mem_data_i;
+
+// reg sram_ready;
+
+
+
+assign r_hit_data = (hit)? sram_cache_data:mem_data_i;
 // read data :  256-bit to 32-bit
 always@(cpu_offset or r_hit_data) begin
     // TODO: add your code here! (cpu_data=...?)
@@ -169,7 +175,7 @@ always@(posedge clk_i or posedge rst_i) begin
             STATE_MISS: begin
                 if(sram_dirty) begin          // write back if dirty
                     // TODO: add your code here!
-                    mem_enable  <= 1'b0;
+                    mem_enable  <= 1'b1; // ???
                     mem_write   <= 1'b1; // sram_dirty=1; the corresponding sram_cache_data is then ready to be written back
                     cache_write <= 1'b0;
                     write_back  <= 1'b1;
@@ -180,7 +186,7 @@ always@(posedge clk_i or posedge rst_i) begin
                     // TODO: add your code here!
                     mem_enable  <= 1'b1;
                     mem_write   <= 1'b0;
-                    cache_write <= 1'b0; // ????
+                    cache_write <= 1'b0; // ???
                     write_back  <= 1'b0;
                     state <= STATE_READMISS;
                 end
