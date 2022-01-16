@@ -19,8 +19,8 @@
     * support Forwarding, Hazard Detection
     * 10-cycle memory latency 
 * Compile (using lab2 testbench, namely testbench.v)
-    * cd codes
-    * iverilog -o ./CPU/testbench.vvp ./CPU/testbench.v
+    * cd codes (make sure you're at codes directory level)
+    * iverilog -o ./testbench.vvp ./testbench.v
     * vvp ./CPU/testbench.vvp
     * outputs: output_{}.txt, cache_{}.txt for register/dmem states and cache history repectively. 
     
