@@ -29,7 +29,7 @@ reg      [255:0]    data;
 wire     [26:0]     addr;
 
 parameter STATE_IDLE            = 1'h0,
-          STATE_WAIT            = 1'h1;            
+          STATE_WAIT            = 1'h1;
 
 reg        [1:0]        state;
 
@@ -43,15 +43,15 @@ always@(posedge clk_i or posedge rst_i) begin
         count <= 4'd0;
     end
     else begin
-        case(state) 
+        case(state)
             STATE_IDLE: begin
                 if(enable_i) begin
-                    state <= STATE_WAIT;
+                    state <= STATE_WAIT; // enable開始拿data
                     count <= count + 1;
                 end
             end
             STATE_WAIT: begin
-                if(count == 4'd9) begin    
+                if(count == 4'd9) begin
                     state <= STATE_IDLE;
                     count <= 0;
                 end
@@ -59,14 +59,14 @@ always@(posedge clk_i or posedge rst_i) begin
                     count <= count + 1;
                 end
             end
-        endcase    
+        endcase
     end
 end
 
 
 always@(posedge clk_i) begin
     if (ack_o) begin
-        if (write_i) begin
+        if (write_i) begin // write可以改memory內容
             memory[addr] <= data_i;
             data <= data_i;
         end

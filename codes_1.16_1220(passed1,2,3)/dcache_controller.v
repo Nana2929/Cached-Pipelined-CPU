@@ -120,6 +120,8 @@ assign    cache_sram_write  = cache_write | write_hit; // cache can only be writ
 assign    cache_sram_tag    = {1'b1, cache_dirty, cpu_tag};
 
 assign    cache_sram_data   = (hit) ? w_hit_data : mem_data_i;
+
+
 // to Data_Memory interface
 assign    mem_enable_o = mem_enable;
 assign    mem_addr_o   = (write_back) ? {sram_tag, cpu_index, 5'b0} : {cpu_tag, cpu_index, 5'b0};
@@ -131,9 +133,6 @@ assign    cache_dirty  = write_hit;
 
 // TODO: add your code here!  (r_hit_data=...?)
 // reference: https://stackoverflow.com/questions/33864574/non-constant-indexing-for-a-logic-statement-in-systemverilog
-
-// reg sram_ready;
-
 
 
 assign r_hit_data = (hit)? sram_cache_data:mem_data_i;
@@ -167,12 +166,11 @@ always@(posedge clk_i or posedge rst_i) begin
                     state <= STATE_MISS;
                 end
                 else begin
-                    // cpu_req && hit
-                    // can modify cache, cache_write should be set to 1 here
+                    // rst_i 後還沒有 cpu_req
                     state <= STATE_IDLE;
                 end
             end
-            STATE_MISS: begin
+            STATE_MISS: begin // 至少會先有一個compulsory miss
                 if(sram_dirty) begin          // write back if dirty
                     // TODO: add your code here!
                     mem_enable  <= 1'b1; // ???
@@ -186,7 +184,7 @@ always@(posedge clk_i or posedge rst_i) begin
                     // TODO: add your code here!
                     mem_enable  <= 1'b1;
                     mem_write   <= 1'b0;
-                    cache_write <= 1'b0; // ???
+                    cache_write <= 1'b0;
                     write_back  <= 1'b0;
                     state <= STATE_READMISS;
                 end
@@ -208,7 +206,7 @@ always@(posedge clk_i or posedge rst_i) begin
                 // TODO: add your code here!
                 mem_enable  <= 1'b0;
                 mem_write   <= 1'b0;
-                cache_write <= 1'b0;
+                cache_write <= 1'b0;    //........
                 write_back  <= 1'b0;
                 state <= STATE_IDLE;
             end
@@ -242,7 +240,7 @@ dcache_sram dcache_sram
     .tag_i      (cache_sram_tag),
     .data_i     (cache_sram_data),
     .enable_i   (cache_sram_enable), // "Not in memory latency period"
-    .write_i    (cache_sram_write),  // "can modify cache"
+    .write_i    (cache_sram_write),  // "can modify cache" (hit&mem_write)
     .tag_o      (sram_cache_tag),
     .data_o     (sram_cache_data),
     .hit_o      (hit)

@@ -4400,6 +4400,38 @@ Data Memory: 0x0440 = 0000000000000000000000000000000000000000000000000000000000
 
 Flush Cache! 
 
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
+tag validity: 0
 cycle = 200, Start = 1
 PC =        696
 Registers

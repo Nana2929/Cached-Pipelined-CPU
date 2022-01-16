@@ -124,6 +124,7 @@ always@(posedge clk_i or posedge rst_i) begin
                     data_o <= data[addr_i][0];
                     tag_o <= tag[addr_i][0];
                     ref[addr_i] <= 1; // block to be evicted next time is 1
+                    
                 end
                 else begin // hit_w1
                     data[addr_i][1] <= data_i;

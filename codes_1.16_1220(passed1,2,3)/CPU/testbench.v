@@ -121,13 +121,13 @@ initial begin
 
     // Load instructions into instruction memory
     // Make sure you change back to "instruction.txt" before submission
-    $readmemb("./testdata/instruction_4.txt", CPU.Instruction_Memory.memory);
+    $readmemb("./testdata/instruction_5_self.txt", CPU.Instruction_Memory.memory);
 
     // Open output files
     // Make sure you change back to "output.txt" before submission
-    outfile = $fopen("./testdata/output4.txt") | 1;
+    outfile = $fopen("./testdata/output5.txt") | 1;
     // Make sure you change back to "cache.txt" before submission
-    outfile2 = $fopen("./testdata/cache4.txt") | 1;
+    outfile2 = $fopen("./testdata/cache5.txt") | 1;
 
 
     // initialize data memory    (16KB)
@@ -147,19 +147,22 @@ initial begin
     // [D-MemoryInitialization] DO NOT REMOVE THIS FLAG !!!
 
 end
-
+reg tag_validity;
 always@(posedge Clk) begin
     if(counter == num_cycles) begin    // store cache to memory
         $fdisplay(outfile, "Flush Cache! \n");
         for (j=0; j<2; j=j+1) begin
             for (i=0; i<16; i=i+1) begin
                 tag = CPU.dcache.dcache_sram.tag[i][j];
-                if (tag[24])begin // see validity
+                tag_validity = CPU.dcache.dcache_sram.tag[i][j][23];
+                $fdisplay(outfile, "tag validity: %b",tag_validity);
+                if (tag_validity) begin // see validity
                     index = i;
                     address = {tag[22:0], index};
                     // $fdisplay(outfile, "Address: %d", address);
                     Data_Memory.memory[address] = CPU.dcache.dcache_sram.data[i][j];
-                    // $fdisplay(outfile, "Cache line: %h, %h,  %h",i, j , CPU.dcache.dcache_sram.data[i][j]);
+                    $fdisplay(outfile, "address: %h",address);
+                    // $fdisplay(outfile, "Cache line: %h, %h, %h",i, j , CPU.dcache.dcache_sram.data[i][j]);
                 end
         end
     end
@@ -200,6 +203,14 @@ always@(posedge Clk) begin
     // print Data Cache Status
     // DO NOT CHANGE THE OUTPUT FORMAT
     if(CPU.dcache.cpu_stall_o && CPU.dcache.state==0) begin
+        //$fdisplay(outfile2, "CPU index: %h, validity:%b, cache data in idx 0[0]: %h", CPU.dcache.cpu_index,  CPU.dcache.dcache_sram.tag[0][0][24] ,CPU.dcache.dcache_sram.data[0][0]);
+
+        //$fdisplay(outfile2, "CPU index: %h, validity:%b, cache data in idx 1[0]: %h", CPU.dcache.cpu_index,  CPU.dcache.dcache_sram.tag[1][0][24] ,CPU.dcache.dcache_sram.data[1][0]);
+
+        //$fdisplay(outfile2, "CPU index: %h, validity:%b, cache data in idx 2[0]: %h", CPU.dcache.cpu_index,  CPU.dcache.dcache_sram.tag[2][0][24] ,CPU.dcache.dcache_sram.data[2][0]);
+        //$fdisplay(outfile2, "CPU index: %h, validity:%b, cache_sram_data: %h", CPU.dcache.cpu_index, CPU.dcache.cache_sram_tag[24], CPU.dcache.cache_sram_data);
+
+
         if(CPU.dcache.sram_dirty) begin
             if(CPU.dcache.cpu_MemWrite_i)
                 $fdisplay(outfile2, "Cycle: %d, Write Miss, Address: %h, Write Data: %h (Write Back!)", counter, CPU.dcache.cpu_addr_i, CPU.dcache.cpu_data_i);
@@ -219,18 +230,26 @@ always@(posedge Clk) begin
     end
     else if(!CPU.dcache.cpu_stall_o) begin
         if(!flag) begin
-            if(CPU.dcache.cpu_MemWrite_i)
+            if(CPU.dcache.cpu_MemWrite_i)begin
                 $fdisplay(outfile2, "Cycle: %d, Write Hit , Address: %h, Write Data: %h", counter, CPU.dcache.cpu_addr_i, CPU.dcache.cpu_data_i);
-            else if(CPU.dcache.cpu_MemRead_i)
-                // $fdisplay(outfile2, "CPU request addr index: %h",CPU.dcache.cpu_index);
+            end
+            else if(CPU.dcache.cpu_MemRead_i)begin
+
                 $fdisplay(outfile2, "Cycle: %d, Read Hit  , Address: %h, Read Data : %h", counter, CPU.dcache.cpu_addr_i, CPU.dcache.cpu_data_o);
+            end
         end
         flag = 1'b0;
     end
 
 
     counter = counter + 1;
+    //$fdisplay(outfile2, "CPU index: %h, validity:%b, cache data in idx 0[0]: %h", CPU.dcache.cpu_index,  CPU.dcache.dcache_sram.tag[0][0][24] ,CPU.dcache.dcache_sram.data[0][0]);
+    //$fdisplay(outfile2, "CPU index: %h, validity:%b, cache data in idx 1[0]: %h", CPU.dcache.cpu_index,  CPU.dcache.dcache_sram.tag[1][0][24] ,CPU.dcache.dcache_sram.data[1][0]);
+    //$fdisplay(outfile2, "CPU index: %h, validity:%b, cache data in idx 2[0]: %h", CPU.dcache.cpu_index,  CPU.dcache.dcache_sram.tag[2][0][24] ,CPU.dcache.dcache_sram.data[2][0]);
+    //$fdisplay(outfile2, "CPU index: %h, validity:%b, cache_sram_data: %h", CPU.dcache.cpu_index, CPU.dcache.cache_sram_tag[24], CPU.dcache.cache_sram_data);
+
 end
+
 
 
 endmodule
