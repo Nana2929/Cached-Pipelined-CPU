@@ -1,8 +1,8 @@
 // Modules provided by TA
 // [!] comment out in submission
-`include "./TA_modules/Registers.v"
-`include "./TA_modules/PC.v"
-`include "./TA_modules/Instruction_Memory.v"
+`include "./Modules/Registers.v"
+`include "./Modules/PC.v"
+`include "./Modules/Instruction_Memory.v"
 // hw3
 `include "./CPU/Adder.v"
 `include "./CPU/Sign_Extend.v"
@@ -22,7 +22,7 @@
 `include "./CPU/MEMWB.v"
 
 // Lab2
-`include "./dcache_controller.v"
+`include "./Dcache/dcache_controller.v"
 
 // top-level module
 module CPU(clk_i, rst_i, start_i,
