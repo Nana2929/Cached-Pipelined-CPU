@@ -64,7 +64,6 @@ assign hit = hit_w0 | hit_w1;
 always@(posedge clk_i or posedge rst_i) begin
     // 我不確定hit_o = hit要寫在always(*)還是posedge?
     // sram_ready_o = 1; // ready
-    hit_o = hit;
     if (rst_i) begin
         for (i=0;i<16;i=i+1) begin
             ref[i] <= 1'b0;
@@ -81,38 +80,43 @@ always@(posedge clk_i or posedge rst_i) begin
             1'b0: begin // Write Miss
                 // Replace
                 if (validw) begin
-                    if (~vw0) begin
+                    if  (~vw0) begin // (~vw0)
                         data[addr_i][0] <= data_i;
                         tag[addr_i][0] <= tag_i;
                         data_o <= data[addr_i][0];
                         tag_o <= tag[addr_i][0];
                         ref[addr_i] <= 1; // block to be evicted next time is 1
                     end
-                    else begin // vw1
+                    else
+                        begin
                         data[addr_i][1] <= data_i;
                         tag[addr_i][1] <= tag_i;
                         data_o <= data[addr_i][1];
                         tag_o <= tag[addr_i][1];
+
                         ref[addr_i] <= 0; // block to be evicted next time is 0
                     end
+
                 end
                 else begin
                     // to be evicted is 0
-                    if (ref[addr_i] == 0) begin
+                    if (ref[addr_i]==0) begin
                         // 把evicted cache line 送至dcache_controller
-                        data_o <= data[addr_i][0];
-                        tag_o <= tag[addr_i][0];
                         // 寫入把其他人擠掉的cache line (requested cache line)
                         tag[addr_i][0] <= tag_i;
                         data[addr_i][0] <= data_i;
+                        data_o <= data[addr_i][0];
+                        tag_o <= tag[addr_i][0]; // 幹ref就是0你送1出去幹嘛 氣瘋
+
                         ref[addr_i] <= 1;
                     end
                     else begin
-                        data_o <= data[addr_i][1];
-                        tag_o <= tag[addr_i][1];
-                        // 寫入把其他人擠掉的cache line (requested cache line)
+                         // 寫入把其他人擠掉的cache line (requested cache line)
                         tag[addr_i][1] <= tag_i;
                         data[addr_i][1] <= data_i;
+                        data_o <= data[addr_i][1];
+                        tag_o <= tag[addr_i][1];
+
                         ref[addr_i] <= 0;
                     end
                     end
@@ -124,7 +128,7 @@ always@(posedge clk_i or posedge rst_i) begin
                     data_o <= data[addr_i][0];
                     tag_o <= tag[addr_i][0];
                     ref[addr_i] <= 1; // block to be evicted next time is 1
-                    
+
                 end
                 else begin // hit_w1
                     data[addr_i][1] <= data_i;
@@ -158,8 +162,17 @@ always@(*)begin
                 end
             end
             1'b0: begin
-                data_o = data_i;
-                tag_o = tag_i;
+                if (~validw) begin
+                    // for writeback: if a read miss occurs and all slots are valid,
+                    // some slot needs to be evicted, and a writeback should occur
+                    // (LRU) send the evicted block info out to controller
+                    data_o <= data[addr_i][ref[addr_i]];
+                    tag_o <= tag[addr_i][ref[addr_i]];
+                end
+                else begin
+                    data_o <= data_i;
+                    tag_o <= tag_i;
+                end
             end
         endcase
         end

@@ -58,7 +58,6 @@ wire                  cache_sram_write;
 wire    [24:0]        sram_cache_tag;
 wire    [255:0]       sram_cache_data;
 wire                  sram_cache_hit;
-wire                  sram_ready;
 
 // cache
 wire                  sram_valid;
