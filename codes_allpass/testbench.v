@@ -154,7 +154,7 @@ always@(posedge Clk) begin
         for (j=0; j<2; j=j+1) begin
             for (i=0; i<16; i=i+1) begin
                 tag = CPU.dcache.dcache_sram.tag[i][j];
-                tag_validity = CPU.dcache.dcache_sram.tag[i][j][23];
+                tag_validity = CPU.dcache.dcache_sram.tag[i][j][24];
                 // $fdisplay(outfile, "tag validity: %b",tag_validity);
                 if (tag_validity) begin // see validity
                     index = i;
