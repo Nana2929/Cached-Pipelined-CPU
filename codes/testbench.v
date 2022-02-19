@@ -147,16 +147,16 @@ initial begin
     // [D-MemoryInitialization] DO NOT REMOVE THIS FLAG !!!
 
 end
-reg tag_validity;
+reg tag_dirty;
 always@(posedge Clk) begin
     if(counter == num_cycles) begin    // store cache to memory
         $fdisplay(outfile, "Flush Cache! \n");
         for (j=0; j<2; j=j+1) begin
             for (i=0; i<16; i=i+1) begin
                 tag = CPU.dcache.dcache_sram.tag[i][j];
-                tag_validity = CPU.dcache.dcache_sram.tag[i][j][23];
+                tag_dirty = CPU.dcache.dcache_sram.tag[i][j][23];
                 // $fdisplay(outfile, "tag validity: %b",tag_validity);
-                if (tag_validity) begin // see validity
+                if (tag_dirty) begin // see dirty or not (可能要用valid bit測一下)
                     index = i;
                     address = {tag[22:0], index};
                     // $fdisplay(outfile, "Address: %d", address);
