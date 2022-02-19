@@ -9,9 +9,9 @@
     * RW Alignment: Align to 8 bytes 
     * Write Hit/Miss Policy: Write back, Write allocate
     * bit-length: tag = 23, idx = 4, offset = 5 
-  * in-chip instruction memory 
+  * on-chip instruction memory 
   * pipelined (5 stages)
-* supported instructions: 
+* Supported instructions: 
   AND, XOR, SLL, ADD, SUB, MUL, ADDI, SRAI, LW, SW, BEQ
 * Env: MacOS, Vscode, iverilog 
 * Additional specs: 
