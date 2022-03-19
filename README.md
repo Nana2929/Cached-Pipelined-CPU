@@ -6,9 +6,9 @@
     * Size: 16 KB 
     * LRU Replacement policy 
     * Cache Line size: 32 bytes 
-    * RW Alignment: Align to 8 bytes 
-    * Write Hit/Miss Policy: Write back, Write allocate
-    * bit-length: tag = 23, idx = 4, offset = 5 
+    * RW Alignment: align to 8 bytes 
+    * Write Hit/Miss Policy: write back, write allocate
+    * Bit-length: tag = 23, idx = 4, offset = 5 
   * on-chip instruction memory 
   * pipelined (5 stages)
 * Supported instructions: 
